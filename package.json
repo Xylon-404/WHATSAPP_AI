@@ -1,0 +1,22 @@
+{
+  "name": "dark-net-ai",
+  "version": "1.0.0",
+  "description": "DARK NET AI — a Bangla/English AI assistant for WhatsApp with image generation, run over an unofficial WhatsApp Web connection.",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.7.9",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pino": "^9.6.0"
+  },
+  "license": "MIT"
+}
