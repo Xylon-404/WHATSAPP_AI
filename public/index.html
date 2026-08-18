@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="theme-color" content="#0b0a08" />
+<title>DARK NET AI</title>
+<meta name="description" content="DARK NET AI · WhatsApp AI assistant control terminal" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Bengali:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:    '#0b0a08',
+          panel:  '#161310',
+          panel2: '#1d1811',
+          hair:   '#332a1c',
+          amber:  '#ffb020',
+          amber2: '#ffd27a',
+          parch:  '#f5ead2',
+          muted:  '#9c8e72',
+          good:   '#8fe08a',
+          bad:    '#ff6b5e',
+        },
+        fontFamily: {
+          mono:   ['"IBM Plex Mono"', 'monospace'],
+          bangla: ['"IBM Plex Sans Bengali"', '"IBM Plex Sans"', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root { color-scheme: dark; }
+  html, body { background: #0b0a08; }
+  body {
+    font-family: 'IBM Plex Sans Bengali', 'IBM Plex Sans', sans-serif;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% -10%, rgba(255,176,32,.10), transparent 60%),
+      #0b0a08;
+  }
+
+  /* subtle scanline + grain overlay, purely atmospheric */
+  .scan-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 40; opacity: .5;
+    background-image: repeating-linear-gradient(
+      to bottom, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px,
+      transparent 1px, transparent 3px
+    );
+    mix-blend-mode: overlay;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  .glow-text   { text-shadow: 0 0 10px rgba(255,176,32,.55), 0 0 26px rgba(255,176,32,.22); }
+  .glow-text-lg{ text-shadow: 0 0 16px rgba(255,176,32,.65), 0 0 40px rgba(255,176,32,.28); }
+  .card {
+    background: linear-gradient(180deg, rgba(29,24,17,.9), rgba(22,19,16,.9));
+    border: 1px solid #332a1c;
+  }
+
+  /* LCD/pager style digit panel for the pairing code */
+  .lcd {
+    background: linear-gradient(180deg,#1a1710,#100e0a);
+    border: 1px solid #4a3c22;
+    box-shadow: inset 0 0 26px rgba(255,176,32,.10), 0 0 40px rgba(255,176,32,.10);
+  }
+  .lcd-digits {
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: .35em;
+    color: #ffcf6a;
+    text-shadow: 0 0 6px rgba(255,190,80,.9), 0 0 22px rgba(255,176,32,.55);
+  }
+
+  @keyframes blink-cursor { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  .cursor { animation: blink-cursor 1s step-end infinite; }
+
+  @keyframes pulse-dot { 0%,100%{ box-shadow:0 0 0 0 rgba(255,176,32,.55);} 50%{ box-shadow:0 0 0 6px rgba(255,176,32,0);} }
+  .pulse-amber { animation: pulse-dot 1.8s ease-out infinite; }
+
+  @keyframes pulse-good { 0%,100%{ box-shadow:0 0 0 0 rgba(143,224,138,.55);} 50%{ box-shadow:0 0 0 6px rgba(143,224,138,0);} }
+  .pulse-good { animation: pulse-good 1.8s ease-out infinite; }
+
+  @keyframes rise-in { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+  .rise-in { animation: rise-in .45s ease both; }
+
+  #terminal::-webkit-scrollbar { width: 8px; }
+  #terminal::-webkit-scrollbar-thumb { background: #4a3c22; border-radius: 8px; }
+  #terminal::-webkit-scrollbar-track { background: transparent; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #c98a12, #ffb020 55%, #ffd27a);
+    color: #241a05;
+  }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 0 26px rgba(255,176,32,.45); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; filter: none; box-shadow: none; }
+</style>
+</head>
+
+<body class="text-parch min-h-screen">
+<div class="scan-overlay"></div>
+
+<main class="relative z-10 mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
+
+  <!-- ── Header ── -->
+  <header class="card rounded-2xl p-4 sm:p-5 flex items-center gap-4 mb-4 rise-in">
+    <div class="shrink-0 w-14 h-14 rounded-xl grid place-items-center bg-gradient-to-br from-[#c98a12] via-amber to-amber2 shadow-[0_0_24px_rgba(255,176,32,.45)]">
+      <svg viewBox="0 0 24 24" class="w-8 h-8 text-ink" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 17V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/>
+        <path d="m7 9 3 3-3 3M13 15h4"/>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <h1 class="font-mono text-lg sm:text-xl tracking-[0.15em] text-parch glow-text">DARK&nbsp;NET&nbsp;AI</h1>
+      <p class="font-mono text-[11px] sm:text-xs tracking-[0.3em] text-muted uppercase mt-0.5">WhatsApp AI Terminal</p>
+    </div>
+  </header>
+
+  <!-- ── Boot line ── -->
+  <p id="bootLine" class="font-mono text-xs text-muted mb-4 pl-1 min-h-[1.2em]"></p>
+
+  <!-- ── Status strip ── -->
+  <section class="card rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-sm rise-in">
+    <span class="text-muted uppercase text-xs tracking-widest">Status</span>
+    <span id="statusBadge" class="inline-flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-muted"></span>
+      <span>CHECKING…</span>
+    </span>
+    <span id="phoneBadge" class="hidden items-center gap-1.5 text-parch/90 ml-auto">
+      <svg viewBox="0 0 24 24" class="w-4 h-4 text-amber" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 12l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2Z"/></svg>
+      <span id="phoneValue"></span>
+    </span>
+  </section>
+
+  <!-- ── Pairing code (LCD style) ── -->
+  <section id="pairingPanel" class="hidden lcd rounded-2xl p-5 sm:p-6 mb-4 text-center rise-in">
+    <div class="font-mono text-[11px] tracking-[0.35em] text-amber2/80 uppercase mb-3">Pairing Code</div>
+    <div id="pairingCode" class="lcd-digits text-3xl sm:text-4xl font-bold break-all">– – – – – –</div>
+    <p class="font-bangla text-xs sm:text-sm text-muted mt-4 leading-relaxed">
+      WhatsApp খুলুন → <b class="text-parch">Settings → Linked Devices → Link a Device → Link with phone number</b> → এই কোডটি দিন
+    </p>
+  </section>
+
+  <!-- ── Login form ── -->
+  <section id="loginPanel" class="hidden card rounded-2xl p-4 sm:p-5 mb-4 rise-in">
+    <h3 class="font-mono text-sm tracking-widest text-amber2 uppercase mb-2">WhatsApp Login</h3>
+    <p class="font-bangla text-xs sm:text-sm text-muted mb-3 leading-relaxed">
+      Country code সহ আপনার WhatsApp নম্বর দিন (<span class="font-mono">+</span> ছাড়া)। উদাহরণঃ
+      <code class="font-mono text-amber2 bg-black/30 border border-hair rounded px-1.5 py-0.5">8801712345678</code>
+    </p>
+    <div class="flex flex-col sm:flex-row gap-2.5">
+      <input id="phoneInput" type="tel" inputmode="numeric" maxlength="15" placeholder="8801XXXXXXXXX"
+        class="flex-1 font-mono text-base tracking-wider bg-black/40 border border-hair focus:border-amber rounded-xl px-4 py-3 outline-none text-amber2 placeholder:text-muted/70 transition" />
+      <button id="startBtn" onclick="startWA()"
+        class="btn-primary font-mono text-xs tracking-[0.2em] uppercase rounded-xl px-5 py-3 transition">
+        Login Start
+      </button>
+    </div>
+    <p id="formMsg" class="font-mono text-xs text-amber2 mt-2 min-h-[1.2em]"></p>
+  </section>
+
+  <!-- ── Commands ── -->
+  <section class="card rounded-2xl p-4 sm:p-5 mb-4 rise-in">
+    <h3 class="font-mono text-sm tracking-widest text-amber2 uppercase mb-3 flex items-center gap-2">
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+      Bot Commands
+    </h3>
+    <ul class="font-bangla text-sm text-muted space-y-2.5">
+      <li class="flex gap-2.5"><svg viewBox="0 0 24 24" class="w-4 h-4 mt-0.5 shrink-0 text-amber" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg><span><b class="text-parch">যেকোনো প্রশ্ন</b> → AI সাথে সাথে উত্তর দেবে (typing indicator সহ)</span></li>
+      <li class="flex gap-2.5"><svg viewBox="0 0 24 24" class="w-4 h-4 mt-0.5 shrink-0 text-amber" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg><span><code class="font-mono text-amber2">/image সূর্যাস্ত</code> → ছবি তৈরি করবে</span></li>
+      <li class="flex gap-2.5"><svg viewBox="0 0 24 24" class="w-4 h-4 mt-0.5 shrink-0 text-amber" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg><span><b class="text-parch">একটা গাড়ির ছবি বানাও</b> → ছবি তৈরি করবে</span></li>
+      <li class="flex gap-2.5"><svg viewBox="0 0 24 24" class="w-4 h-4 mt-0.5 shrink-0 text-amber" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><span><code class="font-mono text-amber2">/info</code> · <code class="font-mono text-amber2">/help</code> → বট সম্পর্কে তথ্য ও কমান্ড তালিকা</span></li>
+    </ul>
+  </section>
+
+  <!-- ── Live terminal logs ── -->
+  <p class="font-mono text-xs tracking-[0.25em] text-amber2 uppercase mb-2 pl-1 rise-in">Live Terminal Logs</p>
+  <section class="rounded-2xl overflow-hidden border border-hair mb-4 rise-in" style="background:#0f0d09">
+    <div class="flex items-center gap-2 px-3.5 py-2 border-b border-hair bg-black/30">
+      <span class="w-2.5 h-2.5 rounded-full bg-bad/80"></span>
+      <span class="w-2.5 h-2.5 rounded-full bg-amber/80"></span>
+      <span class="w-2.5 h-2.5 rounded-full bg-good/80"></span>
+      <span class="ml-auto font-mono text-[11px] tracking-widest text-muted">darknet@ai:~$</span>
+    </div>
+    <div id="terminal" class="font-mono text-xs sm:text-[13px] leading-relaxed p-3.5 h-[300px] overflow-y-auto"></div>
+  </section>
+
+  <!-- ── Reset session ── -->
+  <div id="resetWrap" class="hidden mb-6">
+    <button onclick="resetSession()"
+      class="w-full font-mono text-xs tracking-[0.2em] uppercase rounded-xl px-5 py-3 border border-bad/40 text-bad bg-bad/10 hover:bg-bad/20 transition">
+      Reset Session
+    </button>
+  </div>
+
+  <!-- ── Footer ── -->
+  <footer class="card rounded-2xl p-5 text-center rise-in">
+    <div class="font-mono text-sm tracking-[0.3em] text-amber2 glow-text">『&nbsp;A&nbsp;B&nbsp;D&nbsp;U&nbsp;L&nbsp;L&nbsp;H&nbsp;A&nbsp;』</div>
+    <a href="https://t.me/PRO_CODE_X" target="_blank" rel="noopener"
+      class="inline-flex items-center gap-1.5 mt-3 font-mono text-xs text-amber2/90 border border-hair rounded-full px-4 py-1.5 hover:bg-amber/10 hover:border-amber/50 transition">
+      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor"><path d="M21.5 3.5 2.7 10.9c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.4.9.9.9.4 0 .6-.2.9-.5l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.8l2.9-13.7c.3-1.3-.4-1.9-1.7-1.2Z"/></svg>
+      XALIF
+    </a>
+    <p class="font-mono text-[10px] tracking-[0.2em] text-muted mt-3">DEVELOPED · POWERED BY ABDULLHA</p>
+  </footer>
+</main>
+
+<script>
+  // ── Boot line typing flourish ──
+  (function boot() {
+    const lines = [
+      'INITIALIZING DARK NET AI…',
+      'LOADING SYSTEM MODULES… OK',
+      'TERMINAL READY.',
+    ];
+    const el = document.getElementById('bootLine');
+    let li = 0, ci = 0;
+    function typeNext() {
+      if (li >= lines.length) return;
+      const line = lines[li];
+      if (ci <= line.length) {
+        el.innerHTML = line.slice(0, ci) + '<span class="cursor">▋</span>';
+        ci++;
+        setTimeout(typeNext, 18);
+      } else {
+        li++; ci = 0;
+        setTimeout(() => { el.innerHTML = ''; typeNext(); }, li >= lines.length ? 0 : 260);
+      }
+    }
+    typeNext();
+  })();
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Status polling ──
+  async function refreshStatus() {
+    try {
+      const r = await fetch('/api/status');
+      const d = await r.json();
+
+      const badge = document.getElementById('statusBadge');
+      if (d.whatsapp === 'connected') {
+        badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-good pulse-good"></span><span class="text-good">CONNECTED</span>';
+      } else if (d.whatsapp === 'pairing') {
+        badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber pulse-amber"></span><span class="text-amber2">PAIRING…</span>';
+      } else {
+        badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-bad/80"></span><span class="text-bad/90">OFFLINE</span>';
+      }
+
+      const phoneBadge = document.getElementById('phoneBadge');
+      if (d.phoneNumber) {
+        document.getElementById('phoneValue').textContent = d.phoneNumber;
+        phoneBadge.classList.remove('hidden');
+        phoneBadge.classList.add('flex');
+      } else {
+        phoneBadge.classList.add('hidden');
+      }
+
+      const pairingPanel = document.getElementById('pairingPanel');
+      if (d.pairingCode) {
+        document.getElementById('pairingCode').textContent = d.pairingCode;
+        pairingPanel.classList.remove('hidden');
+      } else {
+        pairingPanel.classList.add('hidden');
+      }
+
+      const loginPanel = document.getElementById('loginPanel');
+      const showLogin = d.whatsapp === 'offline';
+      loginPanel.classList.toggle('hidden', !showLogin);
+
+      const resetWrap = document.getElementById('resetWrap');
+      resetWrap.classList.toggle('hidden', d.whatsapp === 'offline');
+    } catch (e) {
+      // network hiccup — keep last known UI, try again on next tick
+    }
+  }
+
+  // ── Log polling ──
+  let lastLogCount = -1;
+  async function refreshLogs() {
+    try {
+      const r = await fetch('/api/logs?count=60');
+      const d = await r.json();
+      if (d.logs.length === lastLogCount) return;
+      lastLogCount = d.logs.length;
+
+      const term = document.getElementById('terminal');
+      const atBottom = term.scrollHeight - term.scrollTop - term.clientHeight < 40;
+      term.innerHTML = d.logs
+        .map(l => `<div class="text-amber2/90 border-l-2 border-transparent hover:border-amber/60 hover:bg-amber/5 pl-2 py-0.5">&gt; ${escapeHtml(l)}</div>`)
+        .join('');
+      if (atBottom) term.scrollTop = term.scrollHeight;
+    } catch (e) {}
+  }
+
+  async function startWA() {
+    const phone = document.getElementById('phoneInput').value.trim();
+    const msg = document.getElementById('formMsg');
+    const btn = document.getElementById('startBtn');
+    if (!phone || phone.length < 8) { msg.textContent = '❌ সঠিক নম্বর দিন'; return; }
+    msg.textContent = '⏳ পেয়ারিং শুরু হচ্ছে...';
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/wa/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const d = await r.json();
+      msg.textContent = d.ok ? '✅ ' + d.message + ' — কোডের জন্য অপেক্ষা করুন...' : '❌ ' + (d.error || 'failed');
+      if (d.ok) { await refreshStatus(); }
+      btn.disabled = false;
+    } catch (err) {
+      msg.textContent = '❌ ' + err.message;
+      btn.disabled = false;
+    }
+  }
+
+  async function resetSession() {
+    if (!confirm('Session reset হবে — আবার pair করতে হবে। চালিয়ে যাবেন?')) return;
+    try {
+      await fetch('/api/wa/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      await refreshStatus();
+    } catch (e) {}
+  }
+
+  document.getElementById('phoneInput')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') startWA();
+  });
+
+  refreshStatus();
+  refreshLogs();
+  setInterval(refreshStatus, 4000);
+  setInterval(refreshLogs, 3000);
+</script>
+</body>
+</html>
